@@ -70,7 +70,8 @@ selected_date_str = pd.to_datetime(selected_date).strftime("%d-%m-%Y")
 st.write(f"Ajettu kilometrejä {selected_date_str} mennessä: **{total_km} km**")
 
 # Valmista tick-arvot x-akselille (päivämäärät 2 kuukauden välein)
-tick_dates = list(pd.date_range(start=first_date, end=last_date, freq='2M'))
+# Muunnetaan pandas Timestamp -objektit Pythonin datetime-objekteiksi
+tick_dates = [d.to_pydatetime() for d in pd.date_range(start=first_date, end=last_date, freq='2M')]
 
 # Kuvaaja
 st.subheader("Mittarilukeman kehitys")
