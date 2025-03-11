@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import altair as alt
 
 st.title("VW Caravelle AYE-599")
@@ -61,16 +62,25 @@ info_text = (
 )
 st.info(info_text)
 
-# Päivämäärähaku
+# Päivämäärähaku historiallisille tiedoille
 st.subheader("Päivämäärähaku")
-selected_date = st.date_input("Valitse päivämäärä:", value=last_date)
+selected_date = st.date_input("Valitse päivämäärä:", value=last_date, key="historical")
 filtered_df = df[df['Päivämäärä'] <= pd.to_datetime(selected_date)]
 total_km = filtered_df["Mittarilukema"].iloc[-1] if not filtered_df.empty else 0
 selected_date_str = pd.to_datetime(selected_date).strftime("%d-%m-%Y")
 st.write(f"Ajettu kilometrejä {selected_date_str} mennessä: **{total_km} km**")
 
+# Kilometrien ennustehaku
+st.subheader("Kilometrien ennustehaku")
+prediction_date = st.date_input("Valitse ennustettava päivämäärä:", value=last_date, key="prediction")
+# Valmistellaan ennustemalli: muunnetaan päivämäärät päiväeroiksi ensimmäisestä havainnosta
+df['Days'] = (df['Päivämäärä'] - first_date).dt.days
+coefficients = np.polyfit(df['Days'], df['Mittarilukema'], 1)
+days_pred = (pd.to_datetime(prediction_date) - first_date).days
+predicted_km = coefficients[0] * days_pred + coefficients[1]
+st.write(f"Ennustettu mittarilukema {pd.to_datetime(prediction_date).strftime('%d-%m-%Y')} on: **{int(predicted_km)} km**")
+
 # Valmista tick-arvot x-akselille (päivämäärät 2 kuukauden välein)
-# Muunnetaan pandas Timestamp -objektit Pythonin datetime-objekteiksi
 tick_dates = [d.to_pydatetime() for d in pd.date_range(start=first_date, end=last_date, freq='2M')]
 
 # Kuvaaja
