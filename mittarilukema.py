@@ -40,8 +40,7 @@ daily_avg = total_km_driven / num_days
 monthly_avg = daily_avg * 30
 yearly_avg = daily_avg * 365
 
-# Lasketaan polttoainekustannukset:
-# 9 l/100 km kulutus ja dieselpolttoaineen hinta oletuksena 1,70 €/l.
+# Lasketaan polttoainekustannukset: 9 l/100 km ja dieselpolttoaineen hinta oletuksena 1,70 €/l.
 diesel_price = 1.70  # €/l
 monthly_fuel_cost = (monthly_avg / 100 * 9) * diesel_price
 yearly_fuel_cost = (yearly_avg / 100 * 9) * diesel_price
@@ -69,11 +68,29 @@ total_km = filtered_df["Mittarilukema"].iloc[-1] if not filtered_df.empty else 0
 selected_date_str = selected_date.strftime("%d-%m-%Y")
 st.write(f"Ajettu kilometrejä {selected_date_str} mennessä: **{total_km} km**")
 
+# Valmista tick-arvot x-akselille (päivämäärät 2 kuukauden välein)
+tick_dates = list(
+    pd.date_range(
+        start=pd.Timestamp(first_date),
+        end=pd.Timestamp(last_date),
+        freq='2M'
+    )
+)
+
 # Kuvaaja
 st.subheader("Mittarilukeman kehitys")
 chart = alt.Chart(df).mark_line(point=True).encode(
-    x=alt.X('Päivämäärä:T', title='Päivämäärä', axis=alt.Axis(format='%d-%m-%Y')),
-    y=alt.Y('Mittarilukema:Q', title='Mittarilukema', scale=alt.Scale(domain=[145000, 250000]))
+    x=alt.X(
+        'Päivämäärä:T',
+        title='Päivämäärä',
+        axis=alt.Axis(format='%d-%m-%Y', values=tick_dates)
+    ),
+    y=alt.Y(
+        'Mittarilukema:Q',
+        title='Mittarilukema',
+        scale=alt.Scale(domain=[145000, 250000]),
+        axis=alt.Axis(values=list(range(145000, 250000+5000, 5000)))
+    )
 ).properties(
     width=700,
     height=400,
