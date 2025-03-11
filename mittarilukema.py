@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
-st.title("Kilometrien seuranta")
+st.title("VW Caravelle AYE-599")
 
 # Excel-tiedostosta haettu data kovakoodattuna
 data = [
@@ -31,30 +31,16 @@ df = pd.DataFrame(data)
 df['Päivämäärä'] = pd.to_datetime(df['Päivämäärä']).dt.date
 df = df.sort_values("Päivämäärä")
 
-# Luodaan kopio datasta, jossa päivämäärä esitetään muodossa DD-MM-YYYY (näyttöä varten)
-df_display = df.copy()
-df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime("%d-%m-%Y"))
+# Lasketaan havaintoajalta ajetut kilometrit ja keskiarvot
+first_date = df['Päivämäärä'].min()
+last_date = df['Päivämäärä'].max()
+total_km_driven = df.iloc[-1]['Mittarilukema'] - df.iloc[0]['Mittarilukema']
+num_days = (last_date - first_date).days
+daily_avg = total_km_driven / num_days
+monthly_avg = daily_avg * 30
+yearly_avg = daily_avg * 365
 
-st.subheader("Excel-tiedoston sisältö")
-st.dataframe(df_display)
-
-st.subheader("Mittarilukeman kehitys")
-chart = alt.Chart(df).mark_line(point=True).encode(
-    x=alt.X('Päivämäärä:T', title='Päivämäärä', axis=alt.Axis(format='%d-%m-%Y')),
-    y=alt.Y('Mittarilukema:Q', title='Mittarilukema', scale=alt.Scale(domain=[140000, 300000]))
-).properties(
-    width=700,
-    height=400,
-    title="Mittarilukeman kehitys ajan myötä"
-)
-st.altair_chart(chart, use_container_width=True)
-
-st.subheader("Päivämäärähaku")
-# Käyttäjä voi valita päivämäärän; arvo on edelleen date-objekti
-selected_date = st.date_input("Valitse päivämäärä:", value=df['Päivämäärä'].max())
-filtered_df = df[df['Päivämäärä'] <= selected_date]
-total_km = filtered_df["Mittarilukema"].iloc[-1] if not filtered_df.empty else 0
-
-# Muotoillaan valittu päivämäärä DD-MM-YYYY-muotoon
-selected_date_str = selected_date.strftime("%d-%m-%Y")
-st.write(f"Ajettu kilometrejä {selected_date_str} mennessä: **{total_km} km**")
+# Näytetään infoikkuna
+st.info(
+    f"**Havaintojen ajanjakso:** {first_date.strftime('%d-%m-%Y')} - {last_date.strftime('%d-%m-%Y')}\n\n"
+  
