@@ -26,9 +26,9 @@ data = [
     {"Päivämäärä": "2025-03-11", "Mittarilukema": 207621}
 ]
 
-# Muodostetaan DataFrame ja muunnetaan 'Päivämäärä'-sarake date-objekteiksi
+# Muodostetaan DataFrame ja muunnetaan 'Päivämäärä'-sarake pd.Timestamp-objekteiksi
 df = pd.DataFrame(data)
-df['Päivämäärä'] = pd.to_datetime(df['Päivämäärä']).dt.date
+df['Päivämäärä'] = pd.to_datetime(df['Päivämäärä'])
 df = df.sort_values("Päivämäärä")
 
 # Lasketaan havaintoajalta ajetut kilometrit ja keskiarvot
@@ -40,7 +40,8 @@ daily_avg = total_km_driven / num_days
 monthly_avg = daily_avg * 30
 yearly_avg = daily_avg * 365
 
-# Lasketaan polttoainekustannukset: 9 l/100 km ja dieselpolttoaineen hinta oletuksena 1,70 €/l.
+# Lasketaan polttoainekustannukset:
+# Oletus: 9 l/100 km kulutus ja dieselpolttoaineen hinta 1,70 €/l.
 diesel_price = 1.70  # €/l
 monthly_fuel_cost = (monthly_avg / 100 * 9) * diesel_price
 yearly_fuel_cost = (yearly_avg / 100 * 9) * diesel_price
@@ -62,20 +63,14 @@ st.info(info_text)
 
 # Päivämäärähaku
 st.subheader("Päivämäärähaku")
-selected_date = st.date_input("Valitse päivämäärä:", value=df['Päivämäärä'].max())
-filtered_df = df[df['Päivämäärä'] <= selected_date]
+selected_date = st.date_input("Valitse päivämäärä:", value=last_date)
+filtered_df = df[df['Päivämäärä'] <= pd.to_datetime(selected_date)]
 total_km = filtered_df["Mittarilukema"].iloc[-1] if not filtered_df.empty else 0
-selected_date_str = selected_date.strftime("%d-%m-%Y")
+selected_date_str = pd.to_datetime(selected_date).strftime("%d-%m-%Y")
 st.write(f"Ajettu kilometrejä {selected_date_str} mennessä: **{total_km} km**")
 
 # Valmista tick-arvot x-akselille (päivämäärät 2 kuukauden välein)
-tick_dates = list(
-    pd.date_range(
-        start=pd.Timestamp(first_date),
-        end=pd.Timestamp(last_date),
-        freq='2M'
-    )
-)
+tick_dates = list(pd.date_range(start=first_date, end=last_date, freq='2M'))
 
 # Kuvaaja
 st.subheader("Mittarilukeman kehitys")
@@ -89,7 +84,7 @@ chart = alt.Chart(df).mark_line(point=True).encode(
         'Mittarilukema:Q',
         title='Mittarilukema',
         scale=alt.Scale(domain=[145000, 250000]),
-        axis=alt.Axis(values=list(range(145000, 250000+5000, 5000)))
+        axis=alt.Axis(values=list(range(145000, 250000 + 5000, 5000)))
     )
 ).properties(
     width=700,
@@ -98,7 +93,7 @@ chart = alt.Chart(df).mark_line(point=True).encode(
 )
 st.altair_chart(chart, use_container_width=True)
 
-# Näytetään Excel-tiedoston sisältö taulukkona
+# Näytetään lopuksi Excel-tiedoston sisältö taulukkona
 st.subheader("Excel-tiedoston sisältö")
 df_display = df.copy()
 df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime("%d-%m-%Y"))
