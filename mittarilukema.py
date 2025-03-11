@@ -26,12 +26,15 @@ st.write("Syötä päivämäärä ja tarkista mittarilukema siihen mennessä.")
 # Käyttäjä valitsee päivämäärän
 user_date = st.date_input("Valitse päivämäärä")
 
+# Muunna käyttäjän syöttämä päivämäärä oikeaan muotoon
+user_date = datetime.combine(user_date, datetime.min.time())
+
 # Tarkistetaan lähin mittarilukema
 df_filtered = df[df['Päivämäärä'] <= user_date]
 
 if not df_filtered.empty:
     latest_km = df_filtered.iloc[-1]['Mittarilukema']
-    st.success(f"📅 Mittarilukema {user_date}: **{latest_km} km**")
+    st.success(f"📅 Mittarilukema {user_date.strftime('%d.%m.%Y')}: **{latest_km} km**")
 else:
     st.warning("⚠️ Ei tietoa valitusta päivämäärästä.")
 
