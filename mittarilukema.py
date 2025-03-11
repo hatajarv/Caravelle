@@ -40,7 +40,22 @@ daily_avg = total_km_driven / num_days
 monthly_avg = daily_avg * 30
 yearly_avg = daily_avg * 365
 
-# Näytetään infoikkuna
+# Näytetään infoikkuna käyttäen kolmoismerkkijonoa
 st.info(
-    f"**Havaintojen ajanjakso:** {first_date.strftime('%d-%m-%Y')} - {last_date.strftime('%d-%m-%Y')}\n\n"
-  
+    f"""**Havaintojen ajanjakso:** {first_date.strftime("%d-%m-%Y")} - {last_date.strftime("%d-%m-%Y")}
+
+**Ajetut kilometrit yhteensä:** {total_km_driven} km
+
+**Päivittäinen keskiarvo:** {daily_avg:.1f} km/päivä
+
+**Kuukausittainen keskiarvo:** {monthly_avg:.1f} km/kk
+
+**Vuosittainen keskiarvo:** {yearly_avg:.1f} km/vuosi"""
+)
+
+# Luodaan kopio datasta, jossa päivämäärä esitetään muodossa DD-MM-YYYY (näyttöä varten)
+df_display = df.copy()
+df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime("%d-%m-%Y"))
+
+st.subheader("Excel-tiedoston sisältö")
+st.datafram
