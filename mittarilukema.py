@@ -21,7 +21,7 @@ df = pd.DataFrame(data)
 df.sort_values('Päivämäärä', inplace=True)
 
 # --- STREAMLIT WEB-SOVELLUS ---
-st.title("🚗 Auton mittarilukemat ajan myötä")
+st.title("🚗 VW Caravelle AYE-599")
 
 st.write("Syötä päivämäärä ja tarkista mittarilukema siihen mennessä.")
 
