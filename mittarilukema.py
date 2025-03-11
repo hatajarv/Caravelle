@@ -41,7 +41,7 @@ st.dataframe(df_display)
 st.subheader("Mittarilukeman kehitys")
 chart = alt.Chart(df).mark_line(point=True).encode(
     x=alt.X('Päivämäärä:T', title='Päivämäärä', axis=alt.Axis(format='%d-%m-%Y')),
-    y=alt.Y('Mittarilukema:Q', title='Mittarilukema')
+    y=alt.Y('Mittarilukema:Q', title='Mittarilukema', scale=alt.Scale(domain=[140000, 300000]))
 ).properties(
     width=700,
     height=400,
