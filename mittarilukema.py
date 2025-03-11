@@ -1,74 +1,43 @@
-import pandas as pd
 import streamlit as st
-import plotly.express as px
-import numpy as np
-from datetime import datetime
+import pandas as pd
+import altair as alt
 
-# --- 📌 Syötetyt tiedot ---
-data = {
-    "Päivämäärä": ["20.11.2024", "9.12.2024", "18.11.2024", "12.10.2023", "16.10.2023", "11.4.2022", 
-                    "22.3.2022", "9.3.2022", "2.3.2024", "30.3.2024", "6.11.2024", "16.11.2024", 
-                    "22.11.2024", "3.1.2025", "6.1.2025", "9.1.2025", "19.3.2025"],
-    "Mittarilukema": [200371, 201873, 200221, 183951, 184667, 155695, 154829, 154029, 
-                       193158, 194698, 198850, 200069, 200807, 203245, 203448, 203711, 207621]
-}
+# Ladataan Excel-tiedosto. Varmista, että Excel-tiedoston nimi ja sarakeotsikot ovat oikein.
+@st.cache_data
+def load_data():
+    # Muuta polku tarvittaessa, jos Excel-tiedosto ei sijaitse samassa kansiossa
+    df = pd.read_excel("Caravelle AYE-599 kilometrit.xlsx")
+    # Oletetaan, että tiedostossa on sarakkeet "Päivämäärä" ja "Kilometrit".
+    df['Päivämäärä'] = pd.to_datetime(df['Päivämäärä'])
+    return df
 
-# Muunna päivämäärät oikeaan muotoon
-data['Päivämäärä'] = [datetime.strptime(date, "%d.%m.%Y") for date in data['Päivämäärä']]
+df = load_data()
+df = df.sort_values("Päivämäärä")
 
-# Luo DataFrame ja järjestä päivämäärän mukaan
-df = pd.DataFrame(data)
-df.sort_values('Päivämäärä', inplace=True)
+st.title("Kilometrien Seuranta")
 
-# --- STREAMLIT WEB-SOVELLUS ---
-st.title("🚗 VW Caravelle AYE-599")
+# Piirretään käyrä Altair-kirjaston avulla
+st.subheader("Kilometrien kehitys")
+chart = alt.Chart(df).mark_line(point=True).encode(
+    x=alt.X('Päivämäärä:T', title='Päivämäärä'),
+    y=alt.Y('Kilometrit:Q', title='Kilometrit')
+).properties(
+    width=700,
+    height=400,
+    title="Kilometrien kehitys ajan myötä"
+)
+st.altair_chart(chart, use_container_width=True)
 
-st.write("Syötä päivämäärä ja tarkista mittarilukema siihen mennessä.")
+# Päivämäärähaku: käyttäjä voi valita päivämäärän ja nähdä, kuinka monta kilometriä on ajettu siihen mennessä.
+st.subheader("Päivämäärähaku")
+selected_date = st.date_input("Valitse päivämäärä:", value=df['Päivämäärä'].max())
 
-# 🔹 Käyttäjä valitsee päivämäärän
-user_date = st.date_input("Valitse päivämäärä")
+# Suodatetaan data siihen päivämäärään mennessä olevat merkinnät
+filtered_df = df[df['Päivämäärä'] <= pd.to_datetime(selected_date)]
 
-# Muunna käyttäjän syöttämä päivämäärä oikeaan muotoon
-user_date = datetime.combine(user_date, datetime.min.time())
+# Jos data sisältää päivittäisiä ajomääriä, summataan ne yhteen.
+# Jos tiedot ovat kertyviä (eli jokaisessa rivissä on kokonaiskilometrilukema), käytä sen sijaan:
+# total_km = filtered_df["Kilometrit"].iloc[-1] if not filtered_df.empty else 0
+total_km = filtered_df["Kilometrit"].sum() if not filtered_df.empty else 0
 
-# 🔹 Suodata aiempien päivämäärien mittarilukemat
-df_filtered = df[df['Päivämäärä'] <= user_date]
-
-# 🔹 Näytä viimeisin mittarilukema käyttäjän valitsemasta päivämäärästä
-if not df_filtered.empty:
-    latest_km = df_filtered.iloc[-1]['Mittarilukema']
-    st.success(f"📅 Mittarilukema {user_date.strftime('%d.%m.%Y')}: **{latest_km} km**")
-else:
-    st.warning("⚠️ Ei tietoa valitusta päivämäärästä.")
-
-# --- 📊 PIIRRÄ KUVAJA ---
-st.subheader("📈 Kilometrilukeman kehitys")
-fig = px.line(df, x='Päivämäärä', y='Mittarilukema', markers=True, title="Kilometrilukemat ajan myötä")
-st.plotly_chart(fig)
-
-# --- 🔮 TULEVAISUUDEN ARVIOINTI ---
-st.subheader("🔮 Ennusta kilometrilukema tulevaisuuteen")
-
-# Muunna päivämäärät numeeriseen muotoon ennustamista varten
-df['Päivämäärä_ordinal'] = df['Päivämäärä'].map(datetime.toordinal)
-
-# Lineaarinen regressio (ennusteen laskeminen)
-z = np.polyfit(df['Päivämäärä_ordinal'], df['Mittarilukema'], 1)
-p = np.poly1d(z)
-
-# Käyttäjä syöttää tulevaisuuden päivämäärän
-future_date = st.date_input("Valitse tuleva päivämäärä")
-future_date_ordinal = datetime.combine(future_date, datetime.min.time()).toordinal()
-
-# Lasketaan ennustettu kilometrilukema
-predicted_km = p(future_date_ordinal)
-st.info(f"📅 Arvioitu mittarilukema {future_date.strftime('%d.%m.%Y')}: **{int(predicted_km)} km**")
-
-# --- 📊 PIIRRÄ KUVAJA ENNUSTEELLA ---
-fig2 = px.line(df, x='Päivämäärä', y='Mittarilukema', markers=True, title="Kilometrilukemat + ennuste")
-fig2.add_scatter(x=[future_date], y=[predicted_km], mode='markers', marker=dict(color='red', size=10), name="Ennuste")
-st.plotly_chart(fig2)
-
-# --- 📋 Näytetään taulukko ---
-st.subheader("📊 Kaikki mittarilukemat")
-st.dataframe(df[['Päivämäärä', 'Mittarilukema']])
+st.write(f"Ajettu kilometrejä {selected_date} mennessä: **{total_km} km**")
