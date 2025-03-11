@@ -26,19 +26,19 @@ data = [
     {"Päivämäärä": "2025-03-11", "Mittarilukema": 207621}
 ]
 
-# Muodostetaan DataFrame kovakoodatusta datasta
+# Muodostetaan DataFrame ja muunnetaan 'Päivämäärä'-sarake pelkästään päivämääriksi
 df = pd.DataFrame(data)
-df['Päivämäärä'] = pd.to_datetime(df['Päivämäärä'])
+df['Päivämäärä'] = pd.to_datetime(df['Päivämäärä']).dt.date
 df = df.sort_values("Päivämäärä")
 
 # Näytetään Excel-tiedoston sisältö
 st.subheader("Excel-tiedoston sisältö")
 st.dataframe(df)
 
-# Piirretään viivakaavio Altairilla
-st.subheader("Kilometrien kehitys")
+# Piirretään viivakaavio Altairilla; x-akselin asettelussa käytetään muotoilua, joka näyttää vain päivämäärän
+st.subheader("Mittarilukeman kehitys")
 chart = alt.Chart(df).mark_line(point=True).encode(
-    x=alt.X('Päivämäärä:T', title='Päivämäärä'),
+    x=alt.X('Päivämäärä:T', title='Päivämäärä', axis=alt.Axis(format='%Y-%m-%d')),
     y=alt.Y('Mittarilukema:Q', title='Mittarilukema')
 ).properties(
     width=700,
@@ -50,11 +50,7 @@ st.altair_chart(chart, use_container_width=True)
 # Päivämäärähaku: käyttäjä voi valita päivämäärän ja nähdä siihen mennessä kuljetun kilometrimäärän.
 st.subheader("Päivämäärähaku")
 selected_date = st.date_input("Valitse päivämäärä:", value=df['Päivämäärä'].max())
-
-# Suodatetaan data niin, että näytetään vain rivit, joiden päivämäärä on valittua pienempi tai yhtä suuri.
-filtered_df = df[df['Päivämäärä'] <= pd.to_datetime(selected_date)]
-
-# Koska mittarilukema on kertymäkilometrilukema, käytetään suodatetun datan viimeistä arvoa.
+filtered_df = df[df['Päivämäärä'] <= selected_date]
 total_km = filtered_df["Mittarilukema"].iloc[-1] if not filtered_df.empty else 0
 
 st.write(f"Ajettu kilometrejä {selected_date} mennessä: **{total_km} km**")
