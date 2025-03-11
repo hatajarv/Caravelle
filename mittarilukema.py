@@ -40,40 +40,16 @@ daily_avg = total_km_driven / num_days
 monthly_avg = daily_avg * 30
 yearly_avg = daily_avg * 365
 
-# Näytetään infoikkuna käyttäen kolmoismerkkijonoa
+# Lasketaan polttoainekustannukset: 9l/100km ja diesel-hinnan oletusarvona 1,70 €/l.
+diesel_price = 1.70  # €/l
+monthly_fuel_cost = (monthly_avg / 100 * 9) * diesel_price
+yearly_fuel_cost = (yearly_avg / 100 * 9) * diesel_price
+
+# Näytetään infoikkuna
 st.info(
     f"""**Havaintojen ajanjakso:** {first_date.strftime("%d-%m-%Y")} - {last_date.strftime("%d-%m-%Y")}
 
 **Ajetut kilometrit yhteensä:** {total_km_driven} km
 
-**Päivittäinen keskiarvo:** {daily_avg:.1f} km/päivä
-
-**Kuukausittainen keskiarvo:** {monthly_avg:.1f} km/kk
-
-**Vuosittainen keskiarvo:** {yearly_avg:.1f} km/vuosi"""
-)
-
-# Luodaan kopio datasta, jossa päivämäärä esitetään muodossa DD-MM-YYYY (näyttöä varten)
-df_display = df.copy()
-df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime("%d-%m-%Y"))
-
-st.subheader("Excel-tiedoston sisältö")
-st.dataframe(df_display)
-
-st.subheader("Mittarilukeman kehitys")
-chart = alt.Chart(df).mark_line(point=True).encode(
-    x=alt.X('Päivämäärä:T', title='Päivämäärä', axis=alt.Axis(format='%d-%m-%Y')),
-    y=alt.Y('Mittarilukema:Q', title='Mittarilukema', scale=alt.Scale(domain=[140000, 300000]))
-).properties(
-    width=700,
-    height=400,
-    title="Mittarilukeman kehitys ajan myötä"
-)
-st.altair_chart(chart, use_container_width=True)
-
-st.subheader("Päivämäärähaku")
-selected_date = st.date_input("Valitse päivämäärä:", value=df['Päivämäärä'].max())
-filtered_df = df[df['Päivämäärä'] <= selected_date]
-total_km = filtered_df["Mittarilukema"].iloc[-1] if not filtered_df.empty else 0
-selected_date_str = selected_date.strftime("%d-%m-%Y")
-st.write(f"Ajettu kilometrejä {selected_date_str} mennessä: **{total_km} km**")
+**Päivittäinen keskiarvo:** {daily_avg:.1f} km/päivä  
+**Kuukausittainen keski
