@@ -8,7 +8,7 @@ from datetime import timedelta
 # Apufunktiot viikonloppupäivien ja arkipäivien laskemiseen
 def count_weekend_days_detail(start_date, end_date):
     """
-    Laskee päivät eriteltynä: perjantai, lauantai ja sunnuntai
+    Laskee päivät eriteltynä: perjantai, lauantai ja sunnuntai.
     """
     count_friday = 0
     count_saturday = 0
@@ -26,7 +26,7 @@ def count_weekend_days_detail(start_date, end_date):
 
 def count_weekdays(start_date, end_date):
     """
-    Laskee maanantaista torstaihin (0-3) päivien lukumäärän
+    Laskee maanantaista torstaihin (0-3) päivien lukumäärän.
     """
     count = 0
     d = start_date
@@ -36,7 +36,8 @@ def count_weekdays(start_date, end_date):
         d += timedelta(days=1)
     return count
 
-st.title("VW Caravelle AYE-599")
+# ----------------------------
+st.title("VW Caravelle AYE-599 – Huoltohistoria ja Mittarilukemat")
 
 # ------------------------------------
 # 1. Mittausdata (kovakoodattu)
@@ -60,15 +61,15 @@ measurement_data = [
     {"Päivämäärä": "2025-01-09", "Mittarilukema": 203711},
     {"Päivämäärä": "2025-03-11", "Mittarilukema": 207621}
 ]
-df = pd.DataFrame(measurement_data)
-df['Päivämäärä'] = pd.to_datetime(df['Päivämäärä'])
-df = df.sort_values("Päivämäärä")
+df_measure = pd.DataFrame(measurement_data)
+df_measure['Päivämäärä'] = pd.to_datetime(df_measure['Päivämäärä'])
+df_measure = df_measure.sort_values("Päivämäärä")
 
-# Historiallisten tietojen laskenta
-first_date = df['Päivämäärä'].min()
-last_date = df['Päivämäärä'].max()
-initial_value = df.iloc[0]['Mittarilukema']
-total_km_driven = df.iloc[-1]['Mittarilukema'] - initial_value
+# Lasketaan mittausdatan perustiedot
+first_date = df_measure['Päivämäärä'].min()
+last_date = df_measure['Päivämäärä'].max()
+initial_value = df_measure.iloc[0]['Mittarilukema']
+total_km_driven = df_measure.iloc[-1]['Mittarilukema'] - initial_value
 num_days = (last_date - first_date).days
 daily_avg = total_km_driven / num_days
 monthly_avg = daily_avg * 30
@@ -125,7 +126,6 @@ info_text = f"""**Havaintojen ajanjakso:** {first_date.strftime('%d-%m-%Y')} - {
 **Vuosittaiset polttoainekustannukset:** {yearly_fuel_cost:.2f} €/vuosi
 """
 
-# Lasketaan huoltohistorian kustannukset, jos dataa löytyy
 if not df_huolto.empty:
     maintenance_total = df_huolto["Hinta"].sum()
     maintenance_start = df_huolto["Päivämäärä"].min()
