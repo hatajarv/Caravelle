@@ -167,7 +167,7 @@ st.write(f"Painotetun mallin mukaan valitun päivän ({pd.to_datetime(selected_d
 # ------------------------------------
 tick_dates = [d.to_pydatetime() for d in pd.date_range(start=first_date, end=last_date, freq='2M')]
 st.subheader("Mittarilukeman kehitys")
-chart = alt.Chart(df_measure).mark_line(point=True).encode(
+chart = alt.Chart(df).mark_line(point=True).encode(
     x=alt.X('Päivämäärä:T', title='Päivämäärä', axis=alt.Axis(format='%d-%m-%Y', values=tick_dates)),
     y=alt.Y('Mittarilukema:Q', title='Mittarilukema', 
             scale=alt.Scale(domain=[145000, 250000]),
@@ -183,7 +183,7 @@ st.altair_chart(chart, use_container_width=True)
 # 6. Näytetään mittausdatan taulukko
 # ------------------------------------
 st.subheader("Mittaushistoria")
-df_display = df_measure.copy()
+df_display = df.copy()
 df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime("%d-%m-%Y"))
 st.dataframe(df_display)
 
@@ -194,7 +194,7 @@ st.subheader("Huoltohistoria")
 if not df_huolto.empty:
     st.dataframe(df_huolto)
     
-    base = alt.Chart(df_measure).encode(
+    base = alt.Chart(df).encode(
         x=alt.X('Päivämäärä:T', title='Päivämäärä', axis=alt.Axis(format='%d-%m-%Y', values=tick_dates)),
         y=alt.Y('Mittarilukema:Q', title='Mittarilukema')
     )
