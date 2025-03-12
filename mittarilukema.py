@@ -3,12 +3,11 @@ import pandas as pd
 import numpy as np
 import altair as alt
 
-# Taustakuvan asetusfunktio
 def set_background():
     background_url = "https://lh3.googleusercontent.com/pw/AP1GczMebNg4BCFQefDWwx8k8fPHoQh3_oHA8TNKqVjGKjsOcKwsafnGn0AI_MtJ1k9andmNbzLmi2oZ9cFsNtFxM5fBI-47hmm4FsiTCbkJoN-WsBvmQFxt7jyRmXdSV-NzeBTr9wB8EJQw0VxaLC6HzN601g=w1836-h827-s-no-gm"
     css = f"""
     <style>
-    [data-testid="stAppViewContainer"]::before {{
+    .stApp::before {{
         content: "";
         background-image: url("{background_url}");
         background-size: 50%;
@@ -16,7 +15,7 @@ def set_background():
         background-repeat: no-repeat;
         background-attachment: fixed;
         opacity: 0.5;
-        position: absolute;
+        position: fixed;
         top: 0;
         left: 0;
         bottom: 0;
@@ -30,9 +29,9 @@ def set_background():
 # Aseta taustakuva
 set_background()
 
+# Seuraava sisältö (esimerkkidata ja muu sovelluksen sisältö)
 st.title("VW Caravelle AYE-599")
 
-# Kovakoodattu data
 data = [
     {"Päivämäärä": "2022-03-09", "Mittarilukema": 154029},
     {"Päivämäärä": "2022-03-22", "Mittarilukema": 154829},
@@ -58,7 +57,6 @@ df = pd.DataFrame(data)
 df['Päivämäärä'] = pd.to_datetime(df['Päivämäärä'])
 df = df.sort_values("Päivämäärä")
 
-# Lasketaan ajotiedot
 first_date = df['Päivämäärä'].min()
 last_date = df['Päivämäärä'].max()
 total_km_driven = df.iloc[-1]['Mittarilukema'] - df.iloc[0]['Mittarilukema']
@@ -67,7 +65,6 @@ daily_avg = total_km_driven / num_days
 monthly_avg = daily_avg * 30
 yearly_avg = daily_avg * 365
 
-# Lasketaan polttoainekustannukset (oletus: 9 l/100km ja diesel 1,70 €/l)
 diesel_price = 1.70
 monthly_fuel_cost = (monthly_avg / 100 * 9) * diesel_price
 yearly_fuel_cost = (yearly_avg / 100 * 9) * diesel_price
