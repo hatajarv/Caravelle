@@ -110,7 +110,6 @@ df_huolto['Kilometrit'] = df_huolto['Päivämäärä'].map(lambda d: np.interp(d
 # ------------------------------------
 # 3. Infolaatikko – Mittausdata & Huoltokulut
 # ------------------------------------
-# Lasketaan mittausdatan perustiedot (kuten aiemmin)
 info_text = f"""**Havaintojen ajanjakso:** {first_date.strftime('%d-%m-%Y')} - {last_date.strftime('%d-%m-%Y')}
 
 **Ajetut kilometrit yhteensä:** {total_km_driven} km
@@ -123,7 +122,7 @@ info_text = f"""**Havaintojen ajanjakso:** {first_date.strftime('%d-%m-%Y')} - {
 **Vuosittaiset polttoainekustannukset:** {yearly_fuel_cost:.2f} €/vuosi
 """
 
-# Lasketaan huoltokustannukset, jos huoltohistoriaa löytyy
+# Lasketaan huoltokulut, jos huoltohistoriaa löytyy
 if not df_huolto.empty:
     maintenance_total = df_huolto["Hinta"].sum()
     maintenance_start = df_huolto["Päivämäärä"].min()
@@ -150,7 +149,7 @@ st.subheader("Päivämäärähaku ja ennuste (painotettu malli)")
 selected_date = st.date_input("Valitse päivämäärä:", value=last_date, key="combined")
 period_start = first_date
 period_end = pd.to_datetime(selected_date)
-# Lasketaan valitun ajanjakson viikonpäivien lukumäärät
+
 def calc_period_counts(start, end):
     fri, sat, sun = count_weekend_days_detail(start, end)
     wd = count_weekdays(start, end)
