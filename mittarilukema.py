@@ -45,9 +45,9 @@ if maintenance_period_days > 0:
 else:
     monthly_maintenance_cost = yearly_maintenance_cost = 0
 
-# Näytetään huoltohistorian tiedot
-st.subheader("Huoltohistoria")
-st.dataframe(df_huolto)
+# Näytetään huoltohistorian tiedot taulukkona, vain päivämäärät ja mittarilukemat
+st.subheader("Huoltohistorian kilometrilukemat")
+st.dataframe(df_huolto[['Päivämäärä', 'Mittarilukema']])
 
 # Lisätään huoltohistorian kuvaaja
 st.subheader("Huoltojen kehitys mittarilukeman suhteen")
@@ -59,7 +59,7 @@ line = base.mark_line(color='blue')
 points = alt.Chart(df_huolto).mark_point(color='red', size=100).encode(
     x='Päivämäärä:T',
     y='Mittarilukema:Q',
-    tooltip=['Päivämäärä:T', 'Mittarilukema:Q', 'Liike', 'Kuvaus', 'Hinta']
+    tooltip=['Päivämäärä:T', 'Mittarilukema:Q']
 )
 service_chart = (line + points).properties(
     width=700,
