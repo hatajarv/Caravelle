@@ -5,8 +5,11 @@ import altair as alt
 from datetime import timedelta
 
 # Apufunktiot viikonloppupäivien ja arkipäivien laskemiseen
+
 def count_weekend_days_detail(start_date, end_date):
-    """Laskee päivät eriteltynä: perjantai, lauantai ja sunnuntai."""
+    """
+    Laskee päivät eriteltynä: perjantai, lauantai ja sunnuntai
+    """
     count_friday = 0
     count_saturday = 0
     count_sunday = 0
@@ -22,7 +25,9 @@ def count_weekend_days_detail(start_date, end_date):
     return count_friday, count_saturday, count_sunday
 
 def count_weekdays(start_date, end_date):
-    """Laskee maanantaista torstaihin (0-3) päivien lukumäärän."""
+    """
+    Laskee maanantaista torstaihin (0-3) päivien lukumäärän
+    """
     count = 0
     d = start_date
     while d <= end_date:
@@ -59,7 +64,7 @@ df = pd.DataFrame(data)
 df['Päivämäärä'] = pd.to_datetime(df['Päivämäärä'])
 df = df.sort_values("Päivämäärä")
 
-# Historialliset laskelmat
+# Historiallisten tietojen laskenta
 first_date = df['Päivämäärä'].min()
 last_date = df['Päivämäärä'].max()
 total_km_driven = df.iloc[-1]['Mittarilukema'] - df.iloc[0]['Mittarilukema']
@@ -68,7 +73,7 @@ daily_avg = total_km_driven / num_days
 monthly_avg = daily_avg * 30
 yearly_avg = daily_avg * 365
 
-# Polttoainekustannukset (oletus: 9 l/100km, diesel 1,70 €/l)
+# Polttoainekustannukset (oletus: 9 l/100km ja diesel 1,70 €/l)
 diesel_price = 1.70
 monthly_fuel_cost = (monthly_avg / 100 * 9) * diesel_price
 yearly_fuel_cost = (yearly_avg / 100 * 9) * diesel_price
@@ -86,19 +91,28 @@ info_text = f"""**Havaintojen ajanjakso:** {first_date.strftime('%d-%m-%Y')} - {
 """
 st.info(info_text)
 
-# Ennustehaku käyttäen painotettua mallia, jossa viikonlopun osuus jaetaan:
-# Perjantai: 37,5%, Lauantai: 25%, Sunnuntai: 37,5%
+# Päivämäärähaku historiallisille tiedoille
+st.subheader("Päivämäärähaku")
+selected_date = st.date_input("Valitse päivämäärä:", value=last_date, key="historical")
+if pd.to_datetime(selected_date) <= last_date:
+    filtered_df = df[df['Päivämäärä'] <= pd.to_datetime(selected_date)]
+    total_km = filtered_df.iloc[-1]['Mittarilukema']
+    st.write(f"Ajettu kilometrejä {pd.to_datetime(selected_date).strftime('%d-%m-%Y')} mennessä: **{total_km} km**")
+else:
+    st.write("Valittu päivämäärä on viimeisimmän mittauksen jälkeen. Käytä ennustehakua.")
+
+# Kilometrien ennustehaku käyttäen painotettua mallia:
+# Viikonloppujen osuus jaetaan siten, että perjantai saa 37,5 %, lauantai 25 % ja sunnuntai 37,5 %.
 st.subheader("Kilometrien ennustehaku (painotettu weekend/weekday)")
 prediction_date = st.date_input("Valitse ennustettava päivämäärä:", value=last_date, key="prediction")
 if pd.to_datetime(prediction_date) <= last_date:
-    # Jos ennustuspäivä on historiallisen datan sisällä, näytetään mitattu arvo.
+    # Jos ennustuspäivä on historiallisessa ajassa, näytetään mitattu arvo.
     predicted_km = df[df['Päivämäärä'] <= pd.to_datetime(prediction_date)].iloc[-1]['Mittarilukema']
 else:
-    # Ennustetaan tulevalle jaksolle: viimeisestä mittauspäivästä ennustettavaan päivämäärään.
     future_start = last_date + timedelta(days=1)
     future_end = pd.to_datetime(prediction_date)
     
-    # Lasketaan tulevan jakson viikonloppupäivät eriteltynä perjantaille, lauantaille, sunnuntaille
+    # Lasketaan tulevan jakson viikonloppupäivät eriteltynä perjantaille, lauantaille ja sunnuntaille
     future_friday, future_saturday, future_sunday = count_weekend_days_detail(future_start, future_end)
     future_weekday = count_weekdays(future_start, future_end)
     
@@ -107,33 +121,48 @@ else:
     # Historiallinen viikonloppujen osuus kilometreistä on 2/3 kokonaiskilometreistä.
     total_weekend_km = (2/3) * total_km_driven
     
-    # Määritetään perjantai, lauantai, sunnuntai -nopeudet:
-    # Perjantai: 37,5% osuus
+    # Määritetään historialliset painotetut kilometriarvot:
     if hist_friday > 0:
         friday_rate = (0.375 * total_weekend_km) / hist_friday
     else:
         friday_rate = 0
-    # Lauantai: 25% osuus
     if hist_saturday > 0:
         saturday_rate = (0.25 * total_weekend_km) / hist_saturday
     else:
         saturday_rate = 0
-    # Sunnuntai: 37,5% osuus
     if hist_sunday > 0:
         sunday_rate = (0.375 * total_weekend_km) / hist_sunday
     else:
         sunday_rate = 0
-
-    # Historiallinen arkipäivien (maanantai–torstai) osuus on 1/3 kokonaiskilometreistä.
+    
     hist_weekday = count_weekdays(first_date, last_date)
     if hist_weekday > 0:
         weekday_rate = ((1/3) * total_km_driven) / hist_weekday
     else:
         weekday_rate = 0
-
+    
     additional_km = (friday_rate * future_friday) + (saturday_rate * future_saturday) + (sunday_rate * future_sunday) + (weekday_rate * future_weekday)
     predicted_km = df.iloc[-1]['Mittarilukema'] + additional_km
 
 st.write(f"Ennustettu mittarilukema {pd.to_datetime(prediction_date).strftime('%d-%m-%Y')} on: **{int(predicted_km)} km**")
 
-# Voit lisätä myös muita osioita, kuten päivämäärähaku, kuvaaja ja datataulukko...
+# Altair-kuvaaja: Mittarilukeman kehitys
+tick_dates = [d.to_pydatetime() for d in pd.date_range(start=first_date, end=last_date, freq='2M')]
+st.subheader("Mittarilukeman kehitys")
+chart = alt.Chart(df).mark_line(point=True).encode(
+    x=alt.X('Päivämäärä:T', title='Päivämäärä', axis=alt.Axis(format='%d-%m-%Y', values=tick_dates)),
+    y=alt.Y('Mittarilukema:Q', title='Mittarilukema', 
+            scale=alt.Scale(domain=[145000, 250000]),
+            axis=alt.Axis(values=list(range(145000, 250000+5000, 5000))))
+).properties(
+    width=700,
+    height=400,
+    title="Mittarilukeman kehitys ajan myötä"
+)
+st.altair_chart(chart, use_container_width=True)
+
+# Näytetään Excel-tiedoston sisältö taulukkona
+st.subheader("Excel-tiedoston sisältö")
+df_display = df.copy()
+df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime("%d-%m-%Y"))
+st.dataframe(df_display)
