@@ -12,9 +12,9 @@ def set_background_from_url(image_url):
     """
     st.markdown(css, unsafe_allow_html=True)
 
-# Käytä tätä URL-osoitetta taustakuvana.
-background_url = "https://photos.google.com/share/AF1QipOVowZZb_maS58LNHPglNoYOULe1wvGiT-hSk86mXh74F0uTwN2ztS0NBPKjUBaxw/photo/AF1QipNoG-e1CfydT0yCj2ILGABd_JqTYacPDsxUoenW?key=TTJLY3ZEME90cTFHVGlucW5IUkVvUjBEX0JoQzVB"
+# Käytetään suoraa URL:ia, jonka annoit
+background_url = "https://lh3.googleusercontent.com/pw/AP1GczMebNg4BCFQefDWwx8k8fPHoQh3_oHA8TNKqVjGKjsOcKwsafnGn0AI_MtJ1k9andmNbzLmi2oZ9cFsNtFxM5fBI-47hmm4FsiTCbkJoN-WsBvmQFxt7jyRmXdSV-NzeBTr9wB8EJQw0VxaLC6HzN601g=w1836-h827-s-no-gm?authuser=0"
 set_background_from_url(background_url)
 
 st.title("VW Caravelle AYE-599")
-st.write("Tämä on esimerkkisovellus, jossa taustakuva on haettu Google Photos -linkin kautta.")
+st.write("Tämä on esimerkkisovellus, jossa taustakuva on haettu suoran URL:n avulla Google Photosista.")
