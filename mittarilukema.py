@@ -2,10 +2,25 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import altair as alt
+from datetime import timedelta
+
+# Funktio, joka laskee viikonloppujen ja arkipäivien lukumäärän kahden päivämäärän väliltä (mukaan lukien molemmat)
+def count_weekend_weekday(start_date, end_date):
+    weekend = 0
+    weekday = 0
+    d = start_date
+    while d <= end_date:
+        # Pythonissa: maanantai = 0, ..., sunnuntai = 6.
+        if d.weekday() >= 4:  # perjantai (4), lauantai (5), sunnuntai (6)
+            weekend += 1
+        else:
+            weekday += 1
+        d += timedelta(days=1)
+    return weekend, weekday
 
 st.title("VW Caravelle AYE-599")
 
-# Kovakoodattu data
+# Kovakoodattu data (mittauspäivämäärät ja mittarilukemat)
 data = [
     {"Päivämäärä": "2022-03-09", "Mittarilukema": 154029},
     {"Päivämäärä": "2022-03-22", "Mittarilukema": 154829},
@@ -31,6 +46,7 @@ df = pd.DataFrame(data)
 df['Päivämäärä'] = pd.to_datetime(df['Päivämäärä'])
 df = df.sort_values("Päivämäärä")
 
+# Historiallisten tietojen laskenta
 first_date = df['Päivämäärä'].min()
 last_date = df['Päivämäärä'].max()
 total_km_driven = df.iloc[-1]['Mittarilukema'] - df.iloc[0]['Mittarilukema']
@@ -39,7 +55,7 @@ daily_avg = total_km_driven / num_days
 monthly_avg = daily_avg * 30
 yearly_avg = daily_avg * 365
 
-# Polttoainekustannukset (oletus: 9 l/100km ja diesel 1,70 €/l)
+# Polttoainekustannukset (oletus: 9 l/100km, diesel 1,70 €/l)
 diesel_price = 1.70
 monthly_fuel_cost = (monthly_avg / 100 * 9) * diesel_price
 yearly_fuel_cost = (yearly_avg / 100 * 9) * diesel_price
@@ -57,21 +73,40 @@ info_text = f"""**Havaintojen ajanjakso:** {first_date.strftime('%d-%m-%Y')} - {
 """
 st.info(info_text)
 
+# Päivämäärähaku (historialliset tiedot)
 st.subheader("Päivämäärähaku")
 selected_date = st.date_input("Valitse päivämäärä:", value=last_date, key="historical")
-filtered_df = df[df['Päivämäärä'] <= pd.to_datetime(selected_date)]
-total_km = filtered_df["Mittarilukema"].iloc[-1] if not filtered_df.empty else 0
-selected_date_str = pd.to_datetime(selected_date).strftime("%d-%m-%Y")
-st.write(f"Ajettu kilometrejä {selected_date_str} mennessä: **{total_km} km**")
+# Jos valittu päivä on historiallisen ajan sisällä, näytetään viimeisin mitattu arvo.
+if pd.to_datetime(selected_date) <= last_date:
+    filtered_df = df[df['Päivämäärä'] <= pd.to_datetime(selected_date)]
+    total_km = filtered_df["Mittarilukema"].iloc[-1]
+    selected_date_str = pd.to_datetime(selected_date).strftime("%d-%m-%Y")
+    st.write(f"Ajettu kilometrejä {selected_date_str} mennessä: **{total_km} km**")
+else:
+    st.write("Valittu päivämäärä on viimeisimmän mittauksen jälkeen. Käytä ennustehakua.")
+
+# Ennustehaku käyttäen weekend/weekday–painotettua mallia
+# Lasketaan ensin kokonaiskilometrien erotus historiallisen ajanjakson aikana painotettuna
+total_weekend, total_weekday = count_weekend_weekday(first_date, last_date)
+overall_weekend_rate = (2/3 * total_km_driven) / total_weekend
+overall_weekday_rate = (1/3 * total_km_driven) / total_weekday
 
 st.subheader("Kilometrien ennustehaku")
 prediction_date = st.date_input("Valitse ennustettava päivämäärä:", value=last_date, key="prediction")
-df['Days'] = (df['Päivämäärä'] - first_date).dt.days
-coefficients = np.polyfit(df['Days'], df['Mittarilukema'], 1)
-days_pred = (pd.to_datetime(prediction_date) - first_date).days
-predicted_km = coefficients[0] * days_pred + coefficients[1]
+if pd.to_datetime(prediction_date) <= last_date:
+    # Jos ennustuspäivä on historiallisen ajan sisällä, näytetään mitattu arvo.
+    predicted_km = df[df['Päivämäärä'] <= pd.to_datetime(prediction_date)].iloc[-1]['Mittarilukema']
+else:
+    # Tulevalle jaksolle lasketaan viikonloppu- ja arkipäivien lukumäärät
+    future_start = last_date + timedelta(days=1)
+    future_end = pd.to_datetime(prediction_date)
+    future_weekend, future_weekday = count_weekend_weekday(future_start, future_end)
+    predicted_additional_km = overall_weekend_rate * future_weekend + overall_weekday_rate * future_weekday
+    predicted_km = df.iloc[-1]['Mittarilukema'] + predicted_additional_km
+
 st.write(f"Ennustettu mittarilukema {pd.to_datetime(prediction_date).strftime('%d-%m-%Y')} on: **{int(predicted_km)} km**")
 
+# Altair-kuvaaja
 tick_dates = [d.to_pydatetime() for d in pd.date_range(start=first_date, end=last_date, freq='2M')]
 
 st.subheader("Mittarilukeman kehitys")
@@ -87,7 +122,8 @@ chart = alt.Chart(df).mark_line(point=True).encode(
 )
 st.altair_chart(chart, use_container_width=True)
 
-st.subheader("Mittaushistoria")
+# Näytetään lopuksi Excel-tiedoston sisältö taulukkona
+st.subheader("Excel-tiedoston sisältö")
 df_display = df.copy()
 df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime("%d-%m-%Y"))
 st.dataframe(df_display)
