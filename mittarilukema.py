@@ -7,7 +7,9 @@ from datetime import timedelta
 # ----------------------------
 # Apufunktiot viikonloppupäivien ja arkipäivien laskemiseen
 def count_weekend_days_detail(start_date, end_date):
-    """Laskee päivät eriteltynä: perjantai, lauantai ja sunnuntai."""
+    """
+    Laskee päivät eriteltynä: perjantai, lauantai ja sunnuntai.
+    """
     count_friday = 0
     count_saturday = 0
     count_sunday = 0
@@ -23,16 +25,17 @@ def count_weekend_days_detail(start_date, end_date):
     return count_friday, count_saturday, count_sunday
 
 def count_weekdays(start_date, end_date):
-    """Laskee maanantaista torstaihin (0-3) päivien lukumäärän."""
+    """
+    Laskee maanantaista torstaihin (0-3) päivien lukumäärän.
+    """
     count = 0
     d = start_date
     while d <= end_date:
-        if d.weekday() < 4:  # maanantai - torstai
+        if d.weekday() < 4:
             count += 1
         d += timedelta(days=1)
     return count
 
-# ----------------------------
 st.title("VW Caravelle AYE-599 – Huoltohistoria ja Mittarilukemat")
 
 # ------------------------------------
@@ -102,7 +105,7 @@ df_huolto["Päivämäärä"] = pd.to_datetime(df_huolto["Päivämäärä"], dayf
 df_huolto = df_huolto.dropna(subset=["Päivämäärä"])
 df_huolto = df_huolto.sort_values("Päivämäärä")
 
-# Interpoloidaan huoltojen päivämäärien perusteella odometrit
+# Interpoloidaan huoltojen päivämäärien perusteella auton mittarilukemat
 xp = df_measure['Päivämäärä'].map(lambda d: d.toordinal())
 fp = df_measure['Mittarilukema']
 df_huolto['Kilometrit'] = df_huolto['Päivämäärä'].map(lambda d: np.interp(d.toordinal(), xp, fp))
@@ -122,7 +125,7 @@ info_text = f"""**Havaintojen ajanjakso:** {first_date.strftime('%d-%m-%Y')} - {
 **Vuosittaiset polttoainekustannukset:** {yearly_fuel_cost:.2f} €/vuosi
 """
 
-# Lasketaan huoltokulut, jos huoltohistoriaa löytyy
+# Lasketaan huoltohistorian kustannukset, jos dataa löytyy
 if not df_huolto.empty:
     maintenance_total = df_huolto["Hinta"].sum()
     maintenance_start = df_huolto["Päivämäärä"].min()
@@ -140,6 +143,7 @@ if not df_huolto.empty:
 - Kuukausittainen keskiarvo: {monthly_maintenance_cost:.2f} €/kk
 - Vuosittainen keskiarvo: {yearly_maintenance_cost:.2f} €/vuosi
 """
+
 st.info(info_text)
 
 # ------------------------------------
@@ -150,6 +154,7 @@ selected_date = st.date_input("Valitse päivämäärä:", value=last_date, key="
 period_start = first_date
 period_end = pd.to_datetime(selected_date)
 
+# Lasketaan valitun ajanjakson viikonpäivien lukumäärät
 def calc_period_counts(start, end):
     fri, sat, sun = count_weekend_days_detail(start, end)
     wd = count_weekdays(start, end)
