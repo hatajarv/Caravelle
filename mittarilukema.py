@@ -87,7 +87,7 @@ chart = alt.Chart(df).mark_line(point=True).encode(
 )
 st.altair_chart(chart, use_container_width=True)
 
-st.subheader("Excel-tiedoston sisältö")
+st.subheader("Mittaushistoria")
 df_display = df.copy()
 df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime("%d-%m-%Y"))
 st.dataframe(df_display)
