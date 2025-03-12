@@ -3,23 +3,21 @@ import pandas as pd
 import numpy as np
 import altair as alt
 
+# Taustakuvan asetusfunktio
 def set_background():
-    css = """
+    background_url = "https://lh3.googleusercontent.com/pw/AP1GczMebNg4BCFQefDWwx8k8fPHoQh3_oHA8TNKqVjGKjsOcKwsafnGn0AI_MtJ1k9andmNbzLmi2oZ9cFsNtFxM5fBI-47hmm4FsiTCbkJoN-WsBvmQFxt7jyRmXdSV-NzeBTr9wB8EJQw0VxaLC6HzN601g=w1836-h827-s-no-gm"
+    css = f"""
     <style>
-    [data-testid="stAppViewContainer"]::before {
-        content: "";
-        background-image: url("https://lh3.googleusercontent.com/pw/AP1GczMebNg4BCFQefDWwx8k8fPHoQh3_oHA8TNKqVjGKjsOcKwsafnGn0AI_MtJ1k9andmNbzLmi2oZ9cFsNtFxM5fBI-47hmm4FsiTCbkJoN-WsBvmQFxt7jyRmXdSV-NzeBTr9wB8EJQw0VxaLC6HzN601g=w1836-h827-s-no-gm");
+    .stApp {{
+        background-image: url("{background_url}");
         background-size: 50%;
         background-position: top right;
         background-repeat: no-repeat;
-        opacity: 0.5;
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        right: 0;
-        z-index: -1;
-    }
+        background-attachment: fixed;
+    }}
+    .stApp .main {{
+        background-color: rgba(255, 255, 255, 0);
+    }}
     </style>
     """
     st.markdown(css, unsafe_allow_html=True)
@@ -27,9 +25,11 @@ def set_background():
 # Aseta taustakuva
 set_background()
 
+# Seuraavassa on muun sovelluksen sisältö (esimerkki, muokkaa omien tarpeidesi mukaan):
+
 st.title("VW Caravelle AYE-599")
 
-# Seuraavassa on esimerkkidataa ja muut sovelluksen osiot
+# Kovakoodattu data
 data = [
     {"Päivämäärä": "2022-03-09", "Mittarilukema": 154029},
     {"Päivämäärä": "2022-03-22", "Mittarilukema": 154829},
@@ -55,6 +55,7 @@ df = pd.DataFrame(data)
 df['Päivämäärä'] = pd.to_datetime(df['Päivämäärä'])
 df = df.sort_values("Päivämäärä")
 
+# Lasketaan ajotiedot
 first_date = df['Päivämäärä'].min()
 last_date = df['Päivämäärä'].max()
 total_km_driven = df.iloc[-1]['Mittarilukema'] - df.iloc[0]['Mittarilukema']
@@ -63,6 +64,7 @@ daily_avg = total_km_driven / num_days
 monthly_avg = daily_avg * 30
 yearly_avg = daily_avg * 365
 
+# Polttoainekustannukset (oletus: 9 l/100km, diesel 1,70 €/l)
 diesel_price = 1.70
 monthly_fuel_cost = (monthly_avg / 100 * 9) * diesel_price
 yearly_fuel_cost = (yearly_avg / 100 * 9) * diesel_price
@@ -80,5 +82,42 @@ info_text = f"""**Havaintojen ajanjakso:** {first_date.strftime('%d-%m-%Y')} - {
 """
 st.info(info_text)
 
-# Jäljempänä on muut osiot, esim. päivämäärähaku, ennustehaku, kuvaaja ja datataulukko…
-# (Näitä osioita ei ole tässä päivitetty, mutta ne ovat samoja kuin aiemmassa koodissa.)
+# Päivämäärähaku historiallisille tiedoille
+st.subheader("Päivämäärähaku")
+selected_date = st.date_input("Valitse päivämäärä:", value=last_date, key="historical")
+filtered_df = df[df['Päivämäärä'] <= pd.to_datetime(selected_date)]
+total_km = filtered_df["Mittarilukema"].iloc[-1] if not filtered_df.empty else 0
+selected_date_str = pd.to_datetime(selected_date).strftime("%d-%m-%Y")
+st.write(f"Ajettu kilometrejä {selected_date_str} mennessä: **{total_km} km**")
+
+# Kilometrien ennustehaku (lineaarinen regressio)
+st.subheader("Kilometrien ennustehaku")
+prediction_date = st.date_input("Valitse ennustettava päivämäärä:", value=last_date, key="prediction")
+df['Days'] = (df['Päivämäärä'] - first_date).dt.days
+coefficients = np.polyfit(df['Days'], df['Mittarilukema'], 1)
+days_pred = (pd.to_datetime(prediction_date) - first_date).days
+predicted_km = coefficients[0] * days_pred + coefficients[1]
+st.write(f"Ennustettu mittarilukema {pd.to_datetime(prediction_date).strftime('%d-%m-%Y')} on: **{int(predicted_km)} km**")
+
+# X-akselin tick-arvot (päivämäärät 2 kuukauden välein)
+tick_dates = [d.to_pydatetime() for d in pd.date_range(start=first_date, end=last_date, freq='2M')]
+
+# Kuvaaja
+st.subheader("Mittarilukeman kehitys")
+chart = alt.Chart(df).mark_line(point=True).encode(
+    x=alt.X('Päivämäärä:T', title='Päivämäärä', axis=alt.Axis(format='%d-%m-%Y', values=tick_dates)),
+    y=alt.Y('Mittarilukema:Q', title='Mittarilukema', 
+            scale=alt.Scale(domain=[145000, 250000]),
+            axis=alt.Axis(values=list(range(145000, 250000+5000, 5000))))
+).properties(
+    width=700,
+    height=400,
+    title="Mittarilukeman kehitys ajan myötä"
+)
+st.altair_chart(chart, use_container_width=True)
+
+# Näytetään Excel-tiedoston sisältö taulukkona
+st.subheader("Excel-tiedoston sisältö")
+df_display = df.copy()
+df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime("%d-%m-%Y"))
+st.dataframe(df_display)
