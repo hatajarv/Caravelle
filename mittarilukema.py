@@ -31,12 +31,11 @@ def count_weekdays(start_date, end_date):
     count = 0
     d = start_date
     while d <= end_date:
-        if d.weekday() < 4:  # maanantai (0) - torstai (3)
+        if d.weekday() < 4:
             count += 1
         d += timedelta(days=1)
     return count
 
-# ----------------------------
 st.title("VW Caravelle AYE-599 – Huoltohistoria ja Mittarilukemat")
 
 # ------------------------------------
@@ -65,7 +64,7 @@ df_measure = pd.DataFrame(measurement_data)
 df_measure['Päivämäärä'] = pd.to_datetime(df_measure['Päivämäärä'])
 df_measure = df_measure.sort_values("Päivämäärä")
 
-# Lasketaan mittausdatan perustiedot
+# Historiallisten tietojen laskenta
 first_date = df_measure['Päivämäärä'].min()
 last_date = df_measure['Päivämäärä'].max()
 initial_value = df_measure.iloc[0]['Mittarilukema']
@@ -107,8 +106,8 @@ df_huolto = df_huolto.dropna(subset=["Päivämäärä"])
 df_huolto = df_huolto.sort_values("Päivämäärä")
 
 # Interpoloidaan huoltojen päivämäärien perusteella auton mittarilukemat
-xp = df['Päivämäärä'].map(lambda d: d.toordinal())
-fp = df['Mittarilukema']
+xp = df_measure['Päivämäärä'].map(lambda d: d.toordinal())
+fp = df_measure['Mittarilukema']
 df_huolto['Kilometrit'] = df_huolto['Päivämäärä'].map(lambda d: np.interp(d.toordinal(), xp, fp))
 
 # ------------------------------------
@@ -168,7 +167,7 @@ st.write(f"Painotetun mallin mukaan valitun päivän ({pd.to_datetime(selected_d
 # ------------------------------------
 tick_dates = [d.to_pydatetime() for d in pd.date_range(start=first_date, end=last_date, freq='2M')]
 st.subheader("Mittarilukeman kehitys")
-chart = alt.Chart(df).mark_line(point=True).encode(
+chart = alt.Chart(df_measure).mark_line(point=True).encode(
     x=alt.X('Päivämäärä:T', title='Päivämäärä', axis=alt.Axis(format='%d-%m-%Y', values=tick_dates)),
     y=alt.Y('Mittarilukema:Q', title='Mittarilukema', 
             scale=alt.Scale(domain=[145000, 250000]),
@@ -184,7 +183,7 @@ st.altair_chart(chart, use_container_width=True)
 # 6. Näytetään mittausdatan taulukko
 # ------------------------------------
 st.subheader("Mittaushistoria")
-df_display = df.copy()
+df_display = df_measure.copy()
 df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime("%d-%m-%Y"))
 st.dataframe(df_display)
 
@@ -195,7 +194,7 @@ st.subheader("Huoltohistoria")
 if not df_huolto.empty:
     st.dataframe(df_huolto)
     
-    base = alt.Chart(df).encode(
+    base = alt.Chart(df_measure).encode(
         x=alt.X('Päivämäärä:T', title='Päivämäärä', axis=alt.Axis(format='%d-%m-%Y', values=tick_dates)),
         y=alt.Y('Mittarilukema:Q', title='Mittarilukema')
     )
