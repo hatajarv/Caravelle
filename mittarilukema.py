@@ -85,7 +85,7 @@ info_text = f"""**Havaintojen ajanjakso:** {first_date.strftime('%d-%m-%Y')} - {
 
 # ------------------------------------
 # 2. Huoltohistoria
-# Yritetään lukea Excel-tiedosto, fallback-dataa käytetään, jos tiedostoa ei löydy.
+# Yritetään lukea Excel-tiedosto; jos sitä ei löydy, fallback-dataa käytetään.
 file_path = "/mnt/data/AYE_599_huoltohistoria.xlsx"
 if os.path.exists(file_path):
     try:
@@ -186,4 +186,4 @@ st.subheader("Mittarilukeman kehitys ajan myötä")
 chart = alt.Chart(df).mark_line(point=True).encode(
     x=alt.X('Päivämäärä:T', title='Päivämäärä', axis=alt.Axis(format='%d-%m-%Y', values=tick_dates)),
     y=alt.Y('Mittarilukema:Q', title='Mittarilukema', 
-            scale=alt.Scale(domain=[145000, 250000]),\n            axis=alt.Axis(values=list(range(145000, 250000+5000, 5000))))\n).properties(width=700, height=400, title=\"Mittarilukeman kehitys ajan myötä\")\nst.altair_chart(chart, use_container_width=True)\n\n# ------------------------------------\n# 6. Näytetään mittausdatan taulukko\nst.subheader(\"Mittaushistoria\")\ndf_display = df.copy()\ndf_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime(\"%d-%m-%Y\"))\nst.dataframe(df_display)\n" }]}
+            scale=alt.Scale(domain=[145000, 250000]),\n            axis=alt.Axis(values=list(range(145000, 250000+5000, 5000))))\n).properties(width=700, height=400, title=\"Mittarilukeman kehitys ajan myötä\")\nst.altair_chart(chart, use_container_width=True)\n\n# ------------------------------------\n# 6. Näytetään mittausdatan taulukko\nst.subheader(\"Mittaushistoria\")\ndf_display = df.copy()\ndf_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime(\"%d-%m-%Y\"))\nst.dataframe(df_display)\n\n# ------------------------------------\n# 7. Huoltohistorian osio: Taulukko huoltojen päivämääristä ja interpoloiduista mittarilukemista\nst.subheader(\"Huoltohistorian kilometrilukemat\")\nif not df_huolto.empty:\n    st.dataframe(df_huolto[['Päivämäärä', 'Mittarilukema']])\nelse:\n    st.write(\"Huoltohistoriaa ei löytynyt.\")\n"}
