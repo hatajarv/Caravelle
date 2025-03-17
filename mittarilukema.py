@@ -5,8 +5,6 @@ import altair as alt
 from datetime import timedelta
 import os
 
-# ----------------------------
-# Apufunktiot viikonloppupäivien ja arkipäivien laskemiseen
 def count_weekend_days_detail(start_date, end_date):
     """
     Laskee päivät eriteltynä: perjantai, lauantai ja sunnuntai.
@@ -16,11 +14,11 @@ def count_weekend_days_detail(start_date, end_date):
     count_sunday = 0
     d = start_date
     while d <= end_date:
-        if d.weekday() == 4:  # perjantai
+        if d.weekday() == 4:
             count_friday += 1
-        elif d.weekday() == 5:  # lauantai
+        elif d.weekday() == 5:
             count_saturday += 1
-        elif d.weekday() == 6:  # sunnuntai
+        elif d.weekday() == 6:
             count_sunday += 1
         d += timedelta(days=1)
     return count_friday, count_saturday, count_sunday
@@ -37,7 +35,7 @@ def count_weekdays(start_date, end_date):
         d += timedelta(days=1)
     return count
 
-st.title("VW Caravelle AYE-599 (versio 2.0)")
+st.title("VW Caravelle AYE-599 (versio 2.1)")
 
 # ------------------------------------
 # 1. Mittausdata (kovakoodattu uusilla mittausarvoilla)
@@ -55,37 +53,23 @@ df = pd.DataFrame(data)
 df['Päivämäärä'] = pd.to_datetime(df['Päivämäärä'])
 df = df.sort_values("Päivämäärä")
 
-# Historiallisten tietojen laskenta
+# Lasketaan perustiedot
 first_date = df['Päivämäärä'].min()
 last_date = df['Päivämäärä'].max()
 initial_value = df.iloc[0]['Mittarilukema']
 total_km_driven = df.iloc[-1]['Mittarilukema'] - initial_value
-
 num_days = (last_date - first_date).days
 daily_avg = total_km_driven / num_days
 monthly_avg = daily_avg * 30
 yearly_avg = daily_avg * 365
 
-# Päivitetty polttoaineen hinta: 1,85 €/l
+# Polttoaineen hinta
 diesel_price = 1.85
 monthly_fuel_cost = (monthly_avg / 100 * 9) * diesel_price
 yearly_fuel_cost = (yearly_avg / 100 * 9) * diesel_price
 
-info_text = f"""**Havaintojen ajanjakso:** {first_date.strftime('%d-%m-%Y')} - {last_date.strftime('%d-%m-%Y')}
-
-**Ajetut kilometrit yhteensä:** {total_km_driven} km
-
-**Päivittäinen keskiarvo:** {daily_avg:.1f} km/päivä  
-**Kuukausittainen keskiarvo:** {monthly_avg:.1f} km/kk  
-**Vuosittainen keskiarvo:** {yearly_avg:.1f} km/vuosi
-
-**Kuukausittaiset polttoainekustannukset:** {monthly_fuel_cost:.2f} €/kk  
-**Vuosittaiset polttoainekustannukset:** {yearly_fuel_cost:.2f} €/vuosi
-"""
-
 # ------------------------------------
 # 2. Huoltohistoria
-# Yritetään lukea Excel-tiedosto; jos sitä ei löydy, fallback-dataa käytetään.
 file_path = "/mnt/data/AYE_599_huoltohistoria.xlsx"
 if os.path.exists(file_path):
     try:
@@ -118,7 +102,7 @@ else:
     df_huolto["Päivämäärä"] = pd.to_datetime(df_huolto["Päivämäärä"], dayfirst=True, errors='coerce')
     df_huolto = df_huolto.dropna(subset=["Päivämäärä"])
     df_huolto = df_huolto.sort_values("Päivämäärä")
-    
+
 # Interpoloidaan huoltojen päivämäärien perusteella mittarilukemat
 xp = df['Päivämäärä'].map(lambda d: d.toordinal())
 fp = df['Mittarilukema']
@@ -138,8 +122,18 @@ else:
 
 # ------------------------------------
 # 3. Infolaatikko – Mittausdata & Huoltokulut
-info_text += f\"\"\"\n\n**Huoltohistorian kustannukset:**\n- Yhteensä: {maintenance_total:.2f} €\n- Kuukausittainen keskiarvo: {monthly_maintenance_cost:.2f} €/kk\n- Vuosittainen keskiarvo: {yearly_maintenance_cost:.2f} €/vuosi\"\"\" if not df_huolto.empty else \"\n\nHuoltohistoriaa ei löytynyt.\"
-st.info(info_text)
+info_text_full = info_text
+if not df_huolto.empty:
+    info_text_full += (
+        f"""\n\n**Huoltohistorian kustannukset:**
+- Yhteensä: {maintenance_total:.2f} €
+- Kuukausittainen keskiarvo: {monthly_maintenance_cost:.2f} €/kk
+- Vuosittainen keskiarvo: {yearly_maintenance_cost:.2f} €/vuosi"""
+    )
+else:
+    info_text_full += "\n\nHuoltohistoriaa ei löytynyt."
+
+st.info(info_text_full)
 
 # ------------------------------------
 # 4. Yhtenäinen malli: Päivämäärähaku ja ennuste (painotettu malli)
@@ -154,7 +148,7 @@ def calc_period_counts(start, end):
     return fri, sat, sun, wd
 
 period_friday, period_saturday, period_sunday, period_weekday = calc_period_counts(period_start, period_end)
-# Historiallisten tietojen painotukset: oletus, että 2/3 kokonaiskilometreistä kertyy viikonloppuina ja 1/3 arkipäivinä.
+# Historiallisten tietojen painotukset
 hist_friday, hist_saturday, hist_sunday = count_weekend_days_detail(first_date, last_date)
 total_weekend_km = (2/3) * total_km_driven
 friday_rate = (0.375 * total_weekend_km) / hist_friday if hist_friday > 0 else 0
@@ -163,34 +157,48 @@ sunday_rate = (0.375 * total_weekend_km) / hist_sunday if hist_sunday > 0 else 0
 hist_weekday = count_weekdays(first_date, last_date)
 weekday_rate = ((1/3) * total_km_driven) / hist_weekday if hist_weekday > 0 else 0
 
-predicted_additional_km = (friday_rate * period_friday) + (saturday_rate * period_saturday) + (sunday_rate * period_sunday) + (weekday_rate * period_weekday)
+predicted_additional_km = (
+    (friday_rate * period_friday) +
+    (saturday_rate * period_saturday) +
+    (sunday_rate * period_sunday) +
+    (weekday_rate * period_weekday)
+)
 predicted_km = initial_value + predicted_additional_km
-st.write(f\"Painotetun mallin mukaan valitun päivän ({period_end.strftime('%d-%m-%Y')}) arvioitu mittarilukema on: **{int(predicted_km)} km**\")
+st.write(
+    f"Painotetun mallin mukaan valitun päivän ({period_end.strftime('%d-%m-%Y')}) "
+    f"arvioitu mittarilukema on: **{int(predicted_km)} km**"
+)
 
 # ------------------------------------
 # 5. Altair-kuvaaja: Mittarilukeman kehitys
-tick_dates = [d.to_pydatetime() for d in pd.date_range(start=first_date, end=last_date, freq='2M')]
-st.subheader(\"Mittarilukeman kehitys ajan myötä\")
+tick_dates = [
+    d.to_pydatetime() for d in pd.date_range(start=first_date, end=last_date, freq='2M')
+]
+st.subheader("Mittarilukeman kehitys ajan myötä")
 chart = alt.Chart(df).mark_line(point=True).encode(
-    x=alt.X('Päivämäärä:T', title='Päivämäärä', axis=alt.Axis(format='%d-%m-%Y', values=tick_dates)),
-    y=alt.Y('Mittarilukema:Q', title='Mittarilukema', 
-            scale=alt.Scale(domain=[145000, 250000]),
-            axis=alt.Axis(values=list(range(145000, 250000+5000, 5000))))
-).properties(width=700, height=400, title=\"Mittarilukeman kehitys\")
+    x=alt.X(
+        'Päivämäärä:T',
+        title='Päivämäärä',
+        axis=alt.Axis(format='%d-%m-%Y', values=tick_dates)
+    ),
+    y=alt.Y(
+        'Mittarilukema:Q',
+        title='Mittarilukema',
+        scale=alt.Scale(domain=[145000, 250000]),
+        axis=alt.Axis(values=list(range(145000, 250000+5000, 5000)))
+    )
+).properties(width=700, height=400, title="Mittarilukeman kehitys")
 st.altair_chart(chart, use_container_width=True)
 
 # ------------------------------------
 # 6. Näytetään mittausdatan taulukko
-st.subheader(\"Mittaushistoria\")
+st.subheader("Mittaushistoria")
 df_display = df.copy()
-df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime(\"%d-%m-%Y\"))
+df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime("%d-%m-%Y"))
 st.dataframe(df_display)
 
 # ------------------------------------
-# 7. Huoltohistorian osio: Näytetään taulukko, jossa Päivämäärä, Liike, Kuvaus, Mittarilukema
-st.subheader(\"Huoltohistoria – mitä huoltoja kunakin ajankohtana on tehty\")
+# 7. Huoltohistorian osio
+st.subheader("Huoltohistoria – mitä huoltoja kunakin ajankohtana on tehty")
 if not df_huolto.empty:
-    # Näytetään Päivämäärä, Liike, Kuvaus, Mittarilukema
-    st.dataframe(df_huolto[['Päivämäärä', 'Liike', 'Kuvaus', 'Mittarilukema']])
-else:
-    st.write(\"Huoltohistoriaa ei löytynyt.\")
+    # Näy
