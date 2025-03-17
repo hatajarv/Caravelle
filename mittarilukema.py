@@ -37,7 +37,7 @@ def count_weekdays(start_date, end_date):
         d += timedelta(days=1)
     return count
 
-st.title("VW Caravelle AYE-599")
+st.title("VW Caravelle AYE-599 (versio 2.0)")
 
 # ------------------------------------
 # 1. Mittausdata (kovakoodattu uusilla mittausarvoilla)
@@ -138,19 +138,7 @@ else:
 
 # ------------------------------------
 # 3. Infolaatikko – Mittausdata & Huoltokulut
-info_text = f"""**Havaintojen ajanjakso:** {first_date.strftime('%d-%m-%Y')} - {last_date.strftime('%d-%m-%Y')}
-
-**Ajetut kilometrit yhteensä:** {total_km_driven} km
-
-**Päivittäinen keskiarvo:** {daily_avg:.1f} km/päivä  
-**Kuukausittainen keskiarvo:** {monthly_avg:.1f} km/kk  
-**Vuosittainen keskiarvo:** {yearly_avg:.1f} km/vuosi
-
-**Kuukausittaiset polttoainekustannukset:** {monthly_fuel_cost:.2f} €/kk  
-**Vuosittaiset polttoainekustannukset:** {yearly_fuel_cost:.2f} €/vuosi
-"""
-if not df_huolto.empty:
-    info_text += f"""\n\n**Huoltohistorian kustannukset:**\n- Yhteensä: {maintenance_total:.2f} €\n- Kuukausittainen keskiarvo: {monthly_maintenance_cost:.2f} €/kk\n- Vuosittainen keskiarvo: {yearly_maintenance_cost:.2f} €/vuosi"""
+info_text += f\"\"\"\n\n**Huoltohistorian kustannukset:**\n- Yhteensä: {maintenance_total:.2f} €\n- Kuukausittainen keskiarvo: {monthly_maintenance_cost:.2f} €/kk\n- Vuosittainen keskiarvo: {yearly_maintenance_cost:.2f} €/vuosi\"\"\" if not df_huolto.empty else \"\n\nHuoltohistoriaa ei löytynyt.\"
 st.info(info_text)
 
 # ------------------------------------
@@ -177,31 +165,32 @@ weekday_rate = ((1/3) * total_km_driven) / hist_weekday if hist_weekday > 0 else
 
 predicted_additional_km = (friday_rate * period_friday) + (saturday_rate * period_saturday) + (sunday_rate * period_sunday) + (weekday_rate * period_weekday)
 predicted_km = initial_value + predicted_additional_km
-st.write(f"Painotetun mallin mukaan valitun päivän ({period_end.strftime('%d-%m-%Y')}) arvioitu mittarilukema on: **{int(predicted_km)} km**")
+st.write(f\"Painotetun mallin mukaan valitun päivän ({period_end.strftime('%d-%m-%Y')}) arvioitu mittarilukema on: **{int(predicted_km)} km**\")
 
 # ------------------------------------
 # 5. Altair-kuvaaja: Mittarilukeman kehitys
 tick_dates = [d.to_pydatetime() for d in pd.date_range(start=first_date, end=last_date, freq='2M')]
-st.subheader("Mittarilukeman kehitys ajan myötä")
+st.subheader(\"Mittarilukeman kehitys ajan myötä\")
 chart = alt.Chart(df).mark_line(point=True).encode(
     x=alt.X('Päivämäärä:T', title='Päivämäärä', axis=alt.Axis(format='%d-%m-%Y', values=tick_dates)),
     y=alt.Y('Mittarilukema:Q', title='Mittarilukema', 
-            scale=alt.Scale(domain=[145000, 250000]), 
+            scale=alt.Scale(domain=[145000, 250000]),
             axis=alt.Axis(values=list(range(145000, 250000+5000, 5000))))
-).properties(width=700, height=400, title="Mittarilukeman kehitys ajan myötä")
+).properties(width=700, height=400, title=\"Mittarilukeman kehitys\")
 st.altair_chart(chart, use_container_width=True)
 
 # ------------------------------------
 # 6. Näytetään mittausdatan taulukko
-st.subheader("Mittaushistoria")
+st.subheader(\"Mittaushistoria\")
 df_display = df.copy()
-df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime("%d-%m-%Y"))
+df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime(\"%d-%m-%Y\"))
 st.dataframe(df_display)
 
 # ------------------------------------
-# 7. Huoltohistorian osio: Taulukko huoltojen päivämääristä ja interpoloiduista mittarilukemista
-st.subheader("Huoltohistorian kilometrilukemat")
+# 7. Huoltohistorian osio: Näytetään taulukko, jossa Päivämäärä, Liike, Kuvaus, Mittarilukema
+st.subheader(\"Huoltohistoria – mitä huoltoja kunakin ajankohtana on tehty\")
 if not df_huolto.empty:
-    st.dataframe(df_huolto[['Päivämäärä', 'Mittarilukema']])
+    # Näytetään Päivämäärä, Liike, Kuvaus, Mittarilukema
+    st.dataframe(df_huolto[['Päivämäärä', 'Liike', 'Kuvaus', 'Mittarilukema']])
 else:
-    st.write("Huoltohistoriaa ei löytynyt.")
+    st.write(\"Huoltohistoriaa ei löytynyt.\")
