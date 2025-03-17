@@ -16,11 +16,11 @@ def count_weekend_days_detail(start_date, end_date):
     count_sunday = 0
     d = start_date
     while d <= end_date:
-        if d.weekday() == 4:  # perjantai
+        if d.weekday() == 4:
             count_friday += 1
-        elif d.weekday() == 5:  # lauantai
+        elif d.weekday() == 5:
             count_saturday += 1
-        elif d.weekday() == 6:  # sunnuntai
+        elif d.weekday() == 6:
             count_sunday += 1
         d += timedelta(days=1)
     return count_friday, count_saturday, count_sunday
@@ -71,7 +71,6 @@ diesel_price = 1.85
 monthly_fuel_cost = (monthly_avg / 100 * 9) * diesel_price
 yearly_fuel_cost = (yearly_avg / 100 * 9) * diesel_price
 
-# Esitetään tiedot ilman desimaaleja (kilometrit ilmoitetaan kokonaislukuna)
 info_text = f"""**Havaintojen ajanjakso:** {first_date.strftime('%d-%m-%Y')} - {last_date.strftime('%d-%m-%Y')}
 
 **Ajetut kilometrit yhteensä:** {total_km_driven} km
@@ -212,8 +211,8 @@ st.dataframe(df_display)
 # 7. Huoltohistorian osio: Näytetään taulukko, jossa Päivämäärä, Liike, Kuvaus ja interpoloitu Mittarilukema
 st.subheader("Huoltohistoria – mitä huoltoja kunakin ajankohtana on tehty")
 if not df_huolto.empty:
-    # Näytetään Päivämäärä, Liike, Kuvaus, ja interpoloitu Mittarilukema kokonaislukuna
-    df_huolto['Mittarilukema'] = df_huolto['Mittarilukema'].astype(int)
+    # Muotoillaan huoltohistorian päivämäärät ilman kellonaikaa
+    df_huolto['Päivämäärä'] = df_huolto['Päivämäärä'].dt.strftime("%d-%m-%Y")
     st.dataframe(df_huolto[['Päivämäärä', 'Liike', 'Kuvaus', 'Mittarilukema']])
 else:
     st.write("Huoltohistoriaa ei löytynyt.")
