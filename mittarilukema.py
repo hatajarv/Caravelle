@@ -199,18 +199,18 @@ chart = alt.Chart(df).mark_line(point=True).encode(
 st.altair_chart(chart, use_container_width=True)
 
 # ------------------------------------
-# 6. Näytetään mittausdatan taulukko
+# 6. Näytetään mittausdatan taulukko ilman indeksiä
 st.subheader("Mittaushistoria")
 df_display = df.copy()
 df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime("%d-%m-%Y"))
-st.table(df_display.style.hide_index())
+st.markdown(df_display.style.hide_index().to_html(), unsafe_allow_html=True)
 
 # ------------------------------------
-# 7. Huoltohistorian osio: Näytetään taulukko, jossa Päivämäärä, Liike, Kuvaus ja interpoloitu Mittarilukema
+# 7. Huoltohistorian osio: Näytetään taulukko, jossa Päivämäärä, Liike, Kuvaus ja interpoloitu Mittarilukema ilman indeksiä
 st.subheader("Huoltohistoria – mitä huoltoja kunakin ajankohtana on tehty")
 if not df_huolto.empty:
     # Muotoillaan huoltohistorian päivämäärät ilman kellonaikaa
     df_huolto['Päivämäärä'] = pd.to_datetime(df_huolto['Päivämäärä']).dt.strftime("%d-%m-%Y")
-    st.table(df_huolto[['Päivämäärä', 'Liike', 'Kuvaus', 'Mittarilukema']].style.hide_index())
+    st.markdown(df_huolto[['Päivämäärä', 'Liike', 'Kuvaus', 'Mittarilukema']].style.hide_index().to_html(), unsafe_allow_html=True)
 else:
     st.write("Huoltohistoriaa ei löytynyt.")
