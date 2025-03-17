@@ -37,7 +37,7 @@ def count_weekdays(start_date, end_date):
         d += timedelta(days=1)
     return count
 
-st.title("VW Caravelle AYE-599 (versio 2.2)")
+st.title("VW Caravelle AYE-599 (versio 2.1)")
 
 # ------------------------------------
 # 1. Mittausdata (kovakoodattu uusilla mittausarvoilla)
@@ -75,9 +75,9 @@ info_text = f"""**Havaintojen ajanjakso:** {first_date.strftime('%d-%m-%Y')} - {
 
 **Ajetut kilometrit yhteensä:** {total_km_driven} km
 
-**Päivittäinen keskiarvo:** {int(daily_avg)} km/päivä  
-**Kuukausittainen keskiarvo:** {int(monthly_avg)} km/kk  
-**Vuosittainen keskiarvo:** {int(yearly_avg)} km/vuosi
+**Päivittäinen keskiarvo:** {daily_avg:.1f} km/päivä  
+**Kuukausittainen keskiarvo:** {monthly_avg:.1f} km/kk  
+**Vuosittainen keskiarvo:** {yearly_avg:.1f} km/vuosi
 
 **Kuukausittaiset polttoainekustannukset:** {monthly_fuel_cost:.2f} €/kk  
 **Vuosittaiset polttoainekustannukset:** {yearly_fuel_cost:.2f} €/vuosi
@@ -123,7 +123,6 @@ else:
 xp = df['Päivämäärä'].map(lambda d: d.toordinal())
 fp = df['Mittarilukema']
 df_huolto['Mittarilukema'] = df_huolto['Päivämäärä'].map(lambda d: np.interp(d.toordinal(), xp, fp))
-df_huolto['Mittarilukema'] = df_huolto['Mittarilukema'].astype(int)
 
 # Lasketaan huoltokustannusten yhteenvedot
 maintenance_total = df_huolto["Hinta"].sum()
@@ -161,6 +160,7 @@ def calc_period_counts(start, end):
     return fri, sat, sun, wd
 
 period_friday, period_saturday, period_sunday, period_weekday = calc_period_counts(period_start, period_end)
+# Historiallisten tietojen painotukset: oletus, että 2/3 kokonaiskilometreistä kertyy viikonloppuina ja 1/3 arkipäivinä.
 hist_friday, hist_saturday, hist_sunday = count_weekend_days_detail(first_date, last_date)
 total_weekend_km = (2/3) * total_km_driven
 friday_rate = (0.375 * total_weekend_km) / hist_friday if hist_friday > 0 else 0
@@ -176,7 +176,9 @@ predicted_additional_km = (
     (weekday_rate * period_weekday)
 )
 predicted_km = initial_value + predicted_additional_km
-st.write(f"Painotetun mallin mukaan valitun päivän ({period_end.strftime('%d-%m-%Y')}) arvioitu mittarilukema on: **{int(predicted_km)} km**")
+st.write(
+    f"Painotetun mallin mukaan valitun päivän ({period_end.strftime('%d-%m-%Y')}) arvioitu mittarilukema on: **{int(predicted_km)} km**"
+)
 
 # ------------------------------------
 # 5. Altair-kuvaaja: Mittarilukeman kehitys
@@ -193,24 +195,25 @@ chart = alt.Chart(df).mark_line(point=True).encode(
         title='Mittarilukema',
         scale=alt.Scale(domain=[145000, 250000]),
         axis=alt.Axis(values=list(range(145000, 250000+5000, 5000)))
-    ),
-    tooltip=[alt.Tooltip('Mittarilukema:Q', format=",.0f")]
-).properties(width=700, height=400, title="Mittarilukeman kehitys ajan myötä")
+    )
+).properties(
+    width=700,
+    height=400,
+    title="Mittarilukeman kehitys ajan myötä"
+)
 st.altair_chart(chart, use_container_width=True)
 
 # ------------------------------------
-# 6. Näytetään mittausdatan taulukko ilman indeksiä
+# 6. Näytetään mittausdatan taulukko
 st.subheader("Mittaushistoria")
 df_display = df.copy()
 df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.strftime("%d-%m-%Y"))
-st.markdown(df_display.style.hide_index().to_html(), unsafe_allow_html=True)
+st.dataframe(df_display)
 
 # ------------------------------------
-# 7. Huoltohistorian osio: Näytetään taulukko, jossa Päivämäärä, Liike, Kuvaus ja interpoloitu Mittarilukema ilman indeksiä
+# 7. Huoltohistorian osio: Näytetään taulukko, jossa Päivämäärä, Liike, Kuvaus, interpoloitu Mittarilukema
 st.subheader("Huoltohistoria – mitä huoltoja kunakin ajankohtana on tehty")
 if not df_huolto.empty:
-    # Muotoillaan huoltohistorian päivämäärät ilman kellonaikaa
-    df_huolto['Päivämäärä'] = pd.to_datetime(df_huolto['Päivämäärä']).dt.strftime("%d-%m-%Y")
-    st.markdown(df_huolto[['Päivämäärä', 'Liike', 'Kuvaus', 'Mittarilukema']].style.hide_index().to_html(), unsafe_allow_html=True)
+    st.dataframe(df_huolto[['Päivämäärä', 'Liike', 'Kuvaus', 'Mittarilukema']])
 else:
     st.write("Huoltohistoriaa ei löytynyt.")
