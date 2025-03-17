@@ -37,7 +37,7 @@ def count_weekdays(start_date, end_date):
         d += timedelta(days=1)
     return count
 
-st.title("VW Caravelle AYE-599 (versio 2.1)")
+st.title("VW Caravelle AYE-599 (versio 2.2)")
 
 # ------------------------------------
 # 1. Mittausdata (kovakoodattu uusilla mittausarvoilla)
@@ -71,13 +71,14 @@ diesel_price = 1.85
 monthly_fuel_cost = (monthly_avg / 100 * 9) * diesel_price
 yearly_fuel_cost = (yearly_avg / 100 * 9) * diesel_price
 
+# Esitetään tiedot ilman desimaaleja (kilometrit ilmoitetaan kokonaislukuna)
 info_text = f"""**Havaintojen ajanjakso:** {first_date.strftime('%d-%m-%Y')} - {last_date.strftime('%d-%m-%Y')}
 
 **Ajetut kilometrit yhteensä:** {total_km_driven} km
 
-**Päivittäinen keskiarvo:** {daily_avg:.1f} km/päivä  
-**Kuukausittainen keskiarvo:** {monthly_avg:.1f} km/kk  
-**Vuosittainen keskiarvo:** {yearly_avg:.1f} km/vuosi
+**Päivittäinen keskiarvo:** {int(daily_avg)} km/päivä  
+**Kuukausittainen keskiarvo:** {int(monthly_avg)} km/kk  
+**Vuosittainen keskiarvo:** {int(yearly_avg)} km/vuosi
 
 **Kuukausittaiset polttoainekustannukset:** {monthly_fuel_cost:.2f} €/kk  
 **Vuosittaiset polttoainekustannukset:** {yearly_fuel_cost:.2f} €/vuosi
@@ -123,6 +124,8 @@ else:
 xp = df['Päivämäärä'].map(lambda d: d.toordinal())
 fp = df['Mittarilukema']
 df_huolto['Mittarilukema'] = df_huolto['Päivämäärä'].map(lambda d: np.interp(d.toordinal(), xp, fp))
+# Muutetaan interpoloidut mittarilukemat kokonaisluvuiksi
+df_huolto['Mittarilukema'] = df_huolto['Mittarilukema'].astype(int)
 
 # Lasketaan huoltokustannusten yhteenvedot
 maintenance_total = df_huolto["Hinta"].sum()
@@ -176,9 +179,7 @@ predicted_additional_km = (
     (weekday_rate * period_weekday)
 )
 predicted_km = initial_value + predicted_additional_km
-st.write(
-    f"Painotetun mallin mukaan valitun päivän ({period_end.strftime('%d-%m-%Y')}) arvioitu mittarilukema on: **{int(predicted_km)} km**"
-)
+st.write(f"Painotetun mallin mukaan valitun päivän ({period_end.strftime('%d-%m-%Y')}) arvioitu mittarilukema on: **{int(predicted_km)} km**")
 
 # ------------------------------------
 # 5. Altair-kuvaaja: Mittarilukeman kehitys
@@ -195,12 +196,9 @@ chart = alt.Chart(df).mark_line(point=True).encode(
         title='Mittarilukema',
         scale=alt.Scale(domain=[145000, 250000]),
         axis=alt.Axis(values=list(range(145000, 250000+5000, 5000)))
-    )
-).properties(
-    width=700,
-    height=400,
-    title="Mittarilukeman kehitys ajan myötä"
-)
+    ),
+    tooltip=[alt.Tooltip('Mittarilukema:Q', format=",.0f")]
+).properties(width=700, height=400, title="Mittarilukeman kehitys ajan myötä")
 st.altair_chart(chart, use_container_width=True)
 
 # ------------------------------------
@@ -211,9 +209,11 @@ df_display['Päivämäärä'] = df_display['Päivämäärä'].apply(lambda d: d.
 st.dataframe(df_display)
 
 # ------------------------------------
-# 7. Huoltohistorian osio: Näytetään taulukko, jossa Päivämäärä, Liike, Kuvaus, interpoloitu Mittarilukema
+# 7. Huoltohistorian osio: Näytetään taulukko, jossa Päivämäärä, Liike, Kuvaus ja interpoloitu Mittarilukema
 st.subheader("Huoltohistoria – mitä huoltoja kunakin ajankohtana on tehty")
 if not df_huolto.empty:
+    # Näytetään Päivämäärä, Liike, Kuvaus, ja interpoloitu Mittarilukema kokonaislukuna
+    df_huolto['Mittarilukema'] = df_huolto['Mittarilukema'].astype(int)
     st.dataframe(df_huolto[['Päivämäärä', 'Liike', 'Kuvaus', 'Mittarilukema']])
 else:
     st.write("Huoltohistoriaa ei löytynyt.")
